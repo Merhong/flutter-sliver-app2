@@ -1,65 +1,131 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(MaterialApp(
-      home: MyApp(),
-    ));
-
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
+void main() {
+  runApp(MyApp());
 }
 
-class _MyAppState extends State<MyApp> {
-  var top = 0.0;
-  String title = "Good";
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: HomePage(),
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final ScrollController _controller = ScrollController();
+
+  double prev = 0;
+  double height = 300;
+  double profileOpacity = 1.0; // 프로필 컨테이너의 투명도
+
+  @override
+  void initState() {
+    _controller.addListener(() {
+      scrollListener();
+    });
+    super.initState();
+  }
+
+  // 오프셋을 계산하려면 이전 오프셋 값을 알아야함(prev)
+  void scrollListener() {
+    print("스크롤 동작중");
+    double currentOffset = _controller.offset;
+    print("currentOffset : $currentOffset");
+
+    setState(() {
+      // 오프셋0 일때 최대화면, 투명도 1
+      if (currentOffset <= 0) {
+        profileOpacity = 1.0;
+      }
+      // 화면에서 사라짐 투명도 0
+      else if (currentOffset >= 300) {
+        profileOpacity = 0.0;
+      }
+      // 나머지 투명도 조절
+      else {
+        profileOpacity = 1.0 - (currentOffset / 300);
+      }
+    });
+
+    // 실습 : 오프셋이 300보다 작을때만 동작
+    // setState로 flexibleSpace를 구현해보기
+    // 0 ~ 300
+    if (currentOffset < 300) {
+      setState(() {
+        height = 300 - currentOffset - 56;
+        if (height < 0) {
+          height = 0;
+        }
+      });
+    }
+
+    // 301            300 -> 아래 방향
+    if (currentOffset > prev) {
+      print("아래로 내려가요");
+    }
+
+    // 300            301 -> 윗 방향
+    if (currentOffset < prev) {
+      print("위로 올라가요");
+    }
+
+    if (currentOffset == _controller.position.maxScrollExtent) {
+      print("최하단");
+      setState(() {
+        // height = 0;
+      });
+    }
+
+    // currentOffset = 0;
+    if (currentOffset == _controller.position.minScrollExtent) {
+      print("최상단");
+    }
+
+    prev = currentOffset;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: NestedScrollView(
-      headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-        return <Widget>[
-          SliverAppBar(
-              title: Text(
-                "$title",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 50,
-                    fontWeight: FontWeight.bold),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Opacity(
+              opacity: profileOpacity,
+              child: Container(
+                color: Colors.red,
+                height: height,
+                width: double.infinity,
+                child: Center(
+                  child: Text(
+                    "프로필",
+                    style: TextStyle(
+                        color: Colors.white, fontSize: profileOpacity * 50),
+                  ),
+                ),
               ),
-              expandedHeight: 200.0,
-              floating: false,
-              pinned: false,
-              flexibleSpace: LayoutBuilder(
-                  builder: (BuildContext context, BoxConstraints constraints) {
-                    // Wifi+배터리 영역 : 24
-                    // AppBar 높이 : 56
-                    // AppBar 여백 : 16 (좌/우)
-                double size = MediaQuery.of(context).padding.top + 56;
-                top = constraints.biggest.height;
-                print("탑 패딩 : ${MediaQuery.of(context).padding.top}");
-                if (size == top) {
-                  print("슬리버 사라짐");
-                }
-                return FlexibleSpaceBar(
-                    centerTitle: true,
-                    title: Text(
-                      top.toString(),
-                      style: TextStyle(fontSize: 12.0),
-                    ),
-                    background: Image.network(
-                      "https://images.unsplash.com/photo-1542601098-3adb3baeb1ec?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=5bb9a9747954cdd6eabe54e3688a407e&auto=format&fit=crop&w=500&q=60",
-                      fit: BoxFit.cover,
-                    ));
-              })),
-        ];
-      },
-      body: ListView.builder(
-        itemCount: 100,
-        itemBuilder: (context, index) {
-          return Text("List Item: " + index.toString());
-        },
+            ),
+            Expanded(
+              child: ListView.builder(
+                controller: _controller,
+                itemCount: 50,
+                itemBuilder: (context, index) => Text("제목 $index"),
+              ),
+            ),
+          ],
+        ),
       ),
-    ));
+    );
   }
 }
